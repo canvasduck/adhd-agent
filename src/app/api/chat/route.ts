@@ -1,6 +1,7 @@
 import { streamCoachResponse } from '@/lib/llm/services/coach';
 import type { Message } from '@/types';
 
+// Chat API is available to all users - it doesn't persist data to the database
 export async function POST(request: Request) {
   try {
     const { message, history } = await request.json() as {

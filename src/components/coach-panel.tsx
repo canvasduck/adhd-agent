@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { X, Send, Loader2 } from 'lucide-react';
+import { X, Send, Loader2, RotateCcw } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,12 @@ export function CoachPanel({ open, onClose }: CoachPanelProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent]);
+
+  const resetChat = () => {
+    setMessages([]);
+    setInput('');
+    setStreamingContent('');
+  };
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
@@ -118,12 +124,23 @@ export function CoachPanel({ open, onClose }: CoachPanelProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Your Coach</h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
+          <div className="flex items-center gap-1">
+            {messages.length > 0 && (
+              <button
+                onClick={resetChat}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                title="New chat"
+              >
+                <RotateCcw className="h-5 w-5 text-gray-500" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
         </div>
 
         {/* Messages */}

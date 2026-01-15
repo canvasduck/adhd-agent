@@ -1,24 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BottomNav } from '@/components/bottom-nav';
 import { CoachPanel } from '@/components/coach-panel';
 import { CameraPanel } from '@/components/camera-panel';
+import { useAuth } from '@/lib/auth/context';
+import { createProject } from '@/lib/data';
 import type { ExtractedTask } from '@/types';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
   const [isCoachOpen, setIsCoachOpen] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
+  // Listen for custom events to open camera/coach
+  useEffect(() => {
+    const handleOpenCamera = () => setIsCameraOpen(true);
+    const handleOpenCoach = () => setIsCoachOpen(true);
+
+    window.addEventListener('open-camera', handleOpenCamera);
+    window.addEventListener('open-coach', handleOpenCoach);
+
+    return () => {
+      window.removeEventListener('open-camera', handleOpenCamera);
+      window.removeEventListener('open-coach', handleOpenCoach);
+    };
+  }, []);
+
   const handleTasksCreated = async (projectName: string, tasks: ExtractedTask[]) => {
     try {
-      const response = await fetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectName, tasks }),
-      });
-
-      if (!response.ok) throw new Error('Failed to create tasks');
+      await createProject(isAuthenticated, projectName, tasks, 'image');
 
       // Trigger a refresh of the todos list
       window.dispatchEvent(new CustomEvent('todos-updated'));

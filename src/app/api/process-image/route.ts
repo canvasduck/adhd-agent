@@ -1,5 +1,7 @@
 import { analyzeImage } from '@/lib/llm/services/image-processor';
 
+// This endpoint analyzes images and returns suggested tasks
+// It doesn't write to the database, so it's allowed for unauthenticated users
 export async function POST(request: Request) {
   try {
     const { image, mimeType, context } = await request.json() as {

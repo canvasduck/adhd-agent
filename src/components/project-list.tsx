@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import type { Project, Task } from '@/types';
 
 interface ProjectWithTasks extends Project {
@@ -13,7 +15,7 @@ interface ProjectWithTasks extends Project {
 interface ProjectListProps {
   projects: ProjectWithTasks[];
   onTaskComplete: (taskId: string) => void;
-  onAddTask: (projectId: string) => void;
+  onAddTask: (projectId: string, title: string) => void;
   onAddProject: () => void;
 }
 
@@ -26,6 +28,8 @@ export function ProjectList({
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
     new Set(projects.map((p) => p.id))
   );
+  const [addingTaskToProject, setAddingTaskToProject] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
 
   const toggleProject = (projectId: string) => {
     setExpandedProjects((prev) => {
@@ -39,12 +43,20 @@ export function ProjectList({
     });
   };
 
+  const handleAddTask = (projectId: string) => {
+    if (!newTaskTitle.trim()) return;
+    onAddTask(projectId, newTaskTitle.trim());
+    setNewTaskTitle('');
+    setAddingTaskToProject(null);
+  };
+
   return (
     <div className="space-y-3">
       {projects.map((project) => {
         const isExpanded = expandedProjects.has(project.id);
         const completedCount = project.tasks.filter((t) => t.status === 'completed').length;
         const totalCount = project.tasks.length;
+        const isAddingTask = addingTaskToProject === project.id;
 
         // Sort tasks: incomplete first, then completed
         const sortedTasks = [...project.tasks].sort((a, b) => {
@@ -98,14 +110,46 @@ export function ProjectList({
                   </div>
                 ))}
 
-                {/* Add Task Button */}
-                <button
-                  onClick={() => onAddTask(project.id)}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-500 hover:text-indigo-600 hover:bg-gray-50 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add task</span>
-                </button>
+                {/* Add Task Input */}
+                {isAddingTask ? (
+                  <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-100">
+                    <Input
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      placeholder="Task title"
+                      autoFocus
+                      className="flex-1 h-8 text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddTask(project.id);
+                        if (e.key === 'Escape') {
+                          setAddingTaskToProject(null);
+                          setNewTaskTitle('');
+                        }
+                      }}
+                    />
+                    <Button size="sm" onClick={() => handleAddTask(project.id)}>
+                      Add
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setAddingTaskToProject(null);
+                        setNewTaskTitle('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setAddingTaskToProject(project.id)}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-500 hover:text-indigo-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add task</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
