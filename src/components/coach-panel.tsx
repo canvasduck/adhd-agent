@@ -158,21 +158,6 @@ export function CoachPanel({ open, onClose }: CoachPanelProps) {
             </div>
           )}
 
-          {!isAuthenticated && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-              <p className="text-amber-800 text-sm">
-                You&apos;re using the coach as a guest. Your conversation won&apos;t be saved.{' '}
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="text-indigo-600 hover:text-indigo-700 font-medium underline"
-                >
-                  Sign in
-                </button>
-                {' '}to save your chats and sync across devices.
-              </p>
-            </div>
-          )}
-
           {messages.map((message) => (
             <div
               key={message.id}
@@ -222,27 +207,41 @@ export function CoachPanel({ open, onClose }: CoachPanelProps) {
 
         {/* Input */}
         <div className="p-4 border-t border-gray-100 pb-safe">
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
-              placeholder="Type a message..."
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button
-              onClick={() => sendMessage(input)}
-              disabled={isLoading || !input.trim()}
-              size="icon"
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
+          {isAuthenticated ? (
+            <div className="flex gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
+                placeholder="Type a message..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button
+                onClick={() => sendMessage(input)}
+                disabled={isLoading || !input.trim()}
+                size="icon"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+              <p className="text-gray-500 text-sm">
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="text-indigo-600 hover:text-indigo-700 font-medium underline"
+                >
+                  Sign in
+                </button>
+                {' '}to send custom messages and unlock the full coaching experience.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
