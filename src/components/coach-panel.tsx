@@ -5,6 +5,8 @@ import { X, Send, Loader2, RotateCcw } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AuthModal } from '@/components/auth-modal';
+import { useAuth } from '@/lib/auth/context';
 import type { Message } from '@/types';
 
 interface CoachPanelProps {
@@ -22,10 +24,12 @@ const SUGGESTED_CHIPS = [
 ];
 
 export function CoachPanel({ open, onClose }: CoachPanelProps) {
+  const { isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
@@ -154,6 +158,21 @@ export function CoachPanel({ open, onClose }: CoachPanelProps) {
             </div>
           )}
 
+          {!isAuthenticated && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <p className="text-amber-800 text-sm">
+                You&apos;re using the coach as a guest. Your conversation won&apos;t be saved.{' '}
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="text-indigo-600 hover:text-indigo-700 font-medium underline"
+                >
+                  Sign in
+                </button>
+                {' '}to save your chats and sync across devices.
+              </p>
+            </div>
+          )}
+
           {messages.map((message) => (
             <div
               key={message.id}
@@ -226,6 +245,8 @@ export function CoachPanel({ open, onClose }: CoachPanelProps) {
           </div>
         </div>
       </div>
+
+      <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
 }

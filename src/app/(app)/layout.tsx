@@ -1,21 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BottomNav } from '@/components/bottom-nav';
 import { CoachPanel } from '@/components/coach-panel';
 import { CameraPanel } from '@/components/camera-panel';
+import { LimitModal } from '@/components/limit-modal';
 import { useAuth } from '@/lib/auth/context';
+import { useUsageLimits } from '@/hooks/use-usage-limits';
 import { createProject } from '@/lib/data';
 import type { ExtractedTask } from '@/types';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const { isAtAnyLimit, refresh: refreshLimits } = useUsageLimits();
   const [isCoachOpen, setIsCoachOpen] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+
+  const handleOpenCamera = useCallback(() => {
+    if (!isAuthenticated && isAtAnyLimit) {
+      setShowLimitModal(true);
+    } else {
+      setIsCameraOpen(true);
+    }
+  }, [isAuthenticated, isAtAnyLimit]);
 
   // Listen for custom events to open camera/coach
   useEffect(() => {
-    const handleOpenCamera = () => setIsCameraOpen(true);
     const handleOpenCoach = () => setIsCoachOpen(true);
 
     window.addEventListener('open-camera', handleOpenCamera);
@@ -25,14 +36,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       window.removeEventListener('open-camera', handleOpenCamera);
       window.removeEventListener('open-coach', handleOpenCoach);
     };
-  }, []);
+  }, [handleOpenCamera]);
 
   const handleTasksCreated = async (projectName: string, tasks: ExtractedTask[]) => {
     try {
       await createProject(isAuthenticated, projectName, tasks, 'image');
 
-      // Trigger a refresh of the todos list
+      // Trigger a refresh of the todos list and limits
       window.dispatchEvent(new CustomEvent('todos-updated'));
+      refreshLimits();
     } catch (error) {
       console.error('Failed to create tasks:', error);
     }
@@ -44,7 +56,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <BottomNav
         onCoachClick={() => setIsCoachOpen(true)}
-        onCameraClick={() => setIsCameraOpen(true)}
+        onCameraClick={handleOpenCamera}
       />
 
       <CoachPanel open={isCoachOpen} onClose={() => setIsCoachOpen(false)} />
@@ -53,6 +65,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         open={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
         onTasksCreated={handleTasksCreated}
+      />
+
+      <LimitModal
+        open={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        limitType="project"
       />
     </div>
   );

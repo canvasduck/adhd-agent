@@ -4,12 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { TaskCard } from '@/components/task-card';
 import { ProjectList } from '@/components/project-list';
 import { ProfileButton } from '@/components/profile-button';
+import { LimitModal } from '@/components/limit-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getTimeBasedGreeting } from '@/lib/utils';
 import { Camera, MessageCircle, Sparkles, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth/context';
+import { useUsageLimits } from '@/hooks/use-usage-limits';
 import {
   fetchProjects,
   createProject,
@@ -23,11 +25,14 @@ type ViewMode = 'focus' | 'all';
 
 export default function HomePage() {
   const { isAuthenticated, isLoading: authLoading, isMigrating } = useAuth();
+  const { isAtProjectLimit, isAtTaskLimit, refresh: refreshLimits } = useUsageLimits();
   const [projects, setProjects] = useState<ProjectWithTasks[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('focus');
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitType, setLimitType] = useState<'project' | 'task'>('project');
   const greeting = getTimeBasedGreeting();
 
   const loadProjects = useCallback(async () => {
@@ -75,6 +80,15 @@ export default function HomePage() {
     }
   };
 
+  const handleStartAddProject = () => {
+    if (!isAuthenticated && isAtProjectLimit) {
+      setLimitType('project');
+      setShowLimitModal(true);
+      return;
+    }
+    setIsAddingProject(true);
+  };
+
   const handleAddProject = async () => {
     if (!newProjectName.trim()) return;
 
@@ -83,6 +97,7 @@ export default function HomePage() {
       setNewProjectName('');
       setIsAddingProject(false);
       loadProjects();
+      refreshLimits();
     } catch (error) {
       console.error('Failed to add project:', error);
     }
@@ -101,9 +116,16 @@ export default function HomePage() {
   };
 
   const handleAddTask = async (projectId: string, title: string) => {
+    if (!isAuthenticated && isAtTaskLimit) {
+      setLimitType('task');
+      setShowLimitModal(true);
+      return;
+    }
+
     try {
       await addTask(isAuthenticated, projectId, title);
       loadProjects();
+      refreshLimits();
     } catch (error) {
       console.error('Failed to add task:', error);
     }
@@ -167,7 +189,7 @@ export default function HomePage() {
           <Button
             size="icon"
             variant="ghost"
-            onClick={() => setIsAddingProject(true)}
+            onClick={handleStartAddProject}
           >
             <Plus className="h-5 w-5" />
           </Button>
@@ -280,7 +302,7 @@ export default function HomePage() {
               projects={projects}
               onTaskComplete={handleTaskToggle}
               onAddTask={handleAddTask}
-              onAddProject={() => setIsAddingProject(true)}
+              onAddProject={handleStartAddProject}
               onDeleteProject={handleDeleteProject}
             />
           ) : (
@@ -293,7 +315,7 @@ export default function HomePage() {
                 Take a photo of a space or add a project manually.
               </p>
               <Button
-                onClick={() => setIsAddingProject(true)}
+                onClick={handleStartAddProject}
                 className="mt-4"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -303,6 +325,12 @@ export default function HomePage() {
           )}
         </div>
       )}
+
+      <LimitModal
+        open={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        limitType={limitType}
+      />
     </div>
   );
 }
