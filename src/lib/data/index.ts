@@ -7,6 +7,7 @@ import {
   createLocalTask,
   createLocalProjectWithTasks,
   updateLocalTask,
+  deleteLocalProject,
   getLocalDataForMigration,
   clearLocalData,
   hasLocalData,
@@ -28,27 +29,52 @@ export async function fetchProjects(isAuthenticated: boolean): Promise<ProjectWi
   return response.json();
 }
 
-// Create a new project with initial tasks
+// Create a new project (optionally with initial tasks)
 export async function createProject(
   isAuthenticated: boolean,
   projectName: string,
-  tasks: { title: string }[],
+  tasks: { title: string }[] = [],
   source: 'manual' | 'image' | 'coach' = 'image'
 ): Promise<ProjectWithTasks> {
   if (!isAuthenticated) {
+    if (tasks.length === 0) {
+      const project = createLocalProject(projectName);
+      return { ...project, tasks: [] };
+    }
     return createLocalProjectWithTasks(projectName, tasks, source);
   }
 
   const response = await fetch('/api/todos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projectName, tasks }),
+    body: JSON.stringify({ projectName, tasks: tasks.length > 0 ? tasks : undefined }),
   });
 
   if (!response.ok) {
     throw new Error('Failed to create project');
   }
   return response.json();
+}
+
+// Delete a project and all its tasks
+export async function deleteProject(
+  isAuthenticated: boolean,
+  projectId: string
+): Promise<void> {
+  if (!isAuthenticated) {
+    deleteLocalProject(projectId);
+    return;
+  }
+
+  const response = await fetch('/api/todos', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectId }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to delete project');
+  }
 }
 
 // Add a task to an existing project

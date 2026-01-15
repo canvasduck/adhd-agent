@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ interface ProjectListProps {
   onTaskComplete: (taskId: string) => void;
   onAddTask: (projectId: string, title: string) => void;
   onAddProject: () => void;
+  onDeleteProject: (projectId: string) => void;
 }
 
 export function ProjectList({
@@ -24,12 +25,34 @@ export function ProjectList({
   onTaskComplete,
   onAddTask,
   onAddProject,
+  onDeleteProject,
 }: ProjectListProps) {
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
     new Set(projects.map((p) => p.id))
   );
   const [addingTaskToProject, setAddingTaskToProject] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const prevProjectIds = useRef<Set<string>>(new Set(projects.map((p) => p.id)));
+
+  // Auto-expand newly added projects and focus task input
+  useEffect(() => {
+    const currentIds = new Set(projects.map((p) => p.id));
+    const newIds = projects
+      .filter((p) => !prevProjectIds.current.has(p.id))
+      .map((p) => p.id);
+
+    if (newIds.length > 0) {
+      setExpandedProjects((prev) => {
+        const next = new Set(prev);
+        newIds.forEach((id) => next.add(id));
+        return next;
+      });
+      // Focus task input on the first new project
+      setAddingTaskToProject(newIds[0]);
+    }
+
+    prevProjectIds.current = currentIds;
+  }, [projects]);
 
   const toggleProject = (projectId: string) => {
     setExpandedProjects((prev) => {
@@ -68,22 +91,31 @@ export function ProjectList({
         return (
           <div key={project.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {/* Project Header */}
-            <button
-              onClick={() => toggleProject(project.id)}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+              <button
+                onClick={() => toggleProject(project.id)}
+                className="flex items-center gap-3 flex-1"
+              >
                 {isExpanded ? (
                   <ChevronDown className="h-5 w-5 text-gray-400" />
                 ) : (
                   <ChevronRight className="h-5 w-5 text-gray-400" />
                 )}
                 <span className="font-medium text-gray-900">{project.name}</span>
+              </button>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-500">
+                  {completedCount}/{totalCount}
+                </span>
+                <button
+                  onClick={() => onDeleteProject(project.id)}
+                  className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                  title="Delete project"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-              <span className="text-sm text-gray-500">
-                {completedCount}/{totalCount}
-              </span>
-            </button>
+            </div>
 
             {/* Tasks */}
             {isExpanded && (

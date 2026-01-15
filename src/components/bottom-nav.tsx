@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Home, MessageCircle, Camera } from 'lucide-react';
+import { ListTodo, MessageCircle, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -25,8 +25,8 @@ export function BottomNav({ onCoachClick, onCameraClick }: BottomNavProps) {
             isHomeActive ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'
           )}
         >
-          <Home className="h-6 w-6" />
-          <span className="text-xs font-medium">Home</span>
+          <ListTodo className="h-6 w-6" />
+          <span className="text-xs font-medium">Todos</span>
         </Link>
 
         {/* Coach - Center button, elevated */}

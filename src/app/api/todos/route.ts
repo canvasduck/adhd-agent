@@ -95,9 +95,9 @@ export async function POST(request: NextRequest) {
       return Response.json(task);
     }
 
-    // Creating a new project with tasks
-    if (!body.projectName || !body.tasks?.length) {
-      return new Response('Project name and tasks are required', { status: 400 });
+    // Creating a new project (optionally with tasks)
+    if (!body.projectName) {
+      return new Response('Project name is required', { status: 400 });
     }
 
     // Create project with user_id
@@ -112,21 +112,25 @@ export async function POST(request: NextRequest) {
 
     if (projectError) throw projectError;
 
-    // Create tasks with user_id
-    const tasksToInsert = body.tasks.map((task) => ({
-      user_id: user.id,
-      project_id: project.id,
-      title: task.title,
-      status: 'pending',
-      source: 'image',
-    }));
+    // Create tasks if provided
+    let createdTasks: typeof project[] = [];
+    if (body.tasks && body.tasks.length > 0) {
+      const tasksToInsert = body.tasks.map((task) => ({
+        user_id: user.id,
+        project_id: project.id,
+        title: task.title,
+        status: 'pending',
+        source: 'image',
+      }));
 
-    const { data: createdTasks, error: tasksError } = await supabase
-      .from('todos')
-      .insert(tasksToInsert)
-      .select();
+      const { data, error: tasksError } = await supabase
+        .from('todos')
+        .insert(tasksToInsert)
+        .select();
 
-    if (tasksError) throw tasksError;
+      if (tasksError) throw tasksError;
+      createdTasks = data || [];
+    }
 
     return Response.json({
       ...project,
@@ -134,6 +138,50 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Create todos API error:', error);
+    return new Response('Internal server error', { status: 500 });
+  }
+}
+
+// DELETE /api/todos - Delete a project and its tasks
+export async function DELETE(request: NextRequest) {
+  try {
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = await createClient();
+    const { projectId } = await request.json() as { projectId: string };
+
+    if (!projectId) {
+      return new Response('Project ID is required', { status: 400 });
+    }
+
+    // Delete all tasks for the project first
+    const { error: tasksError } = await supabase
+      .from('todos')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('user_id', user.id);
+
+    if (tasksError) throw tasksError;
+
+    // Delete the project
+    const { error: projectError } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', projectId)
+      .eq('user_id', user.id);
+
+    if (projectError) throw projectError;
+
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error('Delete project API error:', error);
     return new Response('Internal server error', { status: 500 });
   }
 }

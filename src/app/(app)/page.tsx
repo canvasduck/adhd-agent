@@ -15,6 +15,7 @@ import {
   createProject,
   addTask,
   updateTask,
+  deleteProject,
   type ProjectWithTasks,
 } from '@/lib/data';
 
@@ -78,12 +79,24 @@ export default function HomePage() {
     if (!newProjectName.trim()) return;
 
     try {
-      await createProject(isAuthenticated, newProjectName.trim(), [{ title: 'First task' }], 'manual');
+      await createProject(isAuthenticated, newProjectName.trim(), [], 'manual');
       setNewProjectName('');
       setIsAddingProject(false);
       loadProjects();
     } catch (error) {
       console.error('Failed to add project:', error);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    // Optimistic update
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+
+    try {
+      await deleteProject(isAuthenticated, projectId);
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      loadProjects(); // Revert on error
     }
   };
 
@@ -150,17 +163,19 @@ export default function HomePage() {
             All
           </button>
         </div>
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => setIsAddingProject(true)}
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
+        {viewMode === 'all' && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setIsAddingProject(true)}
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        )}
       </div>
 
-      {/* Add Project Form */}
-      {isAddingProject && (
+      {/* Add Project Form (only in All view) */}
+      {isAddingProject && viewMode === 'all' && (
         <div className="mb-4 p-4 bg-white rounded-xl border border-gray-200">
           <h3 className="font-medium text-gray-900 mb-3">New Project</h3>
           <div className="flex gap-2">
@@ -266,6 +281,7 @@ export default function HomePage() {
               onTaskComplete={handleTaskToggle}
               onAddTask={handleAddTask}
               onAddProject={() => setIsAddingProject(true)}
+              onDeleteProject={handleDeleteProject}
             />
           ) : (
             <div className="text-center py-12">
